@@ -1,0 +1,31 @@
+timestamp,source_ip,destination_ip,user,event_id,action,severity,asset_type,bytes_transferred,country,port
+2024-01-15 08:23:11,192.168.1.101,10.0.0.5,jsmith,4625,Failed Login,Medium,Workstation,0,US,445
+2024-01-15 08:23:15,192.168.1.101,10.0.0.5,jsmith,4625,Failed Login,Medium,Workstation,0,US,445
+2024-01-15 08:23:18,192.168.1.101,10.0.0.5,jsmith,4625,Failed Login,Medium,Workstation,0,US,445
+2024-01-15 08:23:21,192.168.1.101,10.0.0.5,jsmith,4625,Failed Login,Medium,Workstation,0,US,445
+2024-01-15 08:23:24,192.168.1.101,10.0.0.5,jsmith,4625,Failed Login,Medium,Workstation,0,US,445
+2024-01-15 02:47:33,185.220.101.45,10.0.0.1,admin,4624,Successful Login,High,Database Server,0,RU,22
+2024-01-15 02:47:45,185.220.101.45,10.0.0.1,admin,4663,File Access,High,Database Server,524288000,RU,22
+2024-01-15 02:48:01,185.220.101.45,10.0.0.99,admin,4663,File Access,Critical,Database Server,1073741824,RU,22
+2024-01-15 09:15:00,10.0.0.55,8.8.8.8,svc_account,5156,Outbound Connection,Low,App Server,1024,US,443
+2024-01-15 09:16:00,10.0.0.55,8.8.8.8,svc_account,5156,Outbound Connection,Low,App Server,1024,US,443
+2024-01-15 09:17:00,10.0.0.55,8.8.8.8,svc_account,5156,Outbound Connection,Low,App Server,1024,US,443
+2024-01-15 14:05:22,203.0.113.77,10.0.0.20,ceo_jones,4624,Successful Login,Low,Workstation,0,CN,3389
+2024-01-15 14:06:01,203.0.113.77,10.0.0.20,ceo_jones,4663,File Access,High,Workstation,209715200,CN,3389
+2024-01-15 11:30:00,10.0.0.200,10.0.0.5,dbadmin,4624,Successful Login,Low,Database Server,0,US,1433
+2024-01-15 11:30:45,10.0.0.200,10.0.0.5,dbadmin,5145,SQL Query,Low,Database Server,8192,US,1433
+2024-01-15 03:12:00,198.51.100.22,10.0.0.30,guest,4625,Failed Login,Low,Guest Wifi,0,BR,80
+2024-01-15 03:12:01,198.51.100.22,10.0.0.30,guest,4625,Failed Login,Low,Guest Wifi,0,BR,80
+2024-01-15 03:12:02,198.51.100.22,10.0.0.30,guest,4625,Failed Login,Low,Guest Wifi,0,BR,80
+2024-01-15 16:00:01,10.0.0.88,192.168.50.1,netadmin,4624,Successful Login,Low,Firewall,0,US,22
+2024-01-15 16:01:15,10.0.0.88,192.168.50.1,netadmin,4719,Policy Change,High,Firewall,0,US,22
+2024-01-15 16:01:30,10.0.0.88,192.168.50.1,netadmin,4719,Policy Change,High,Firewall,0,US,22
+2024-01-15 07:55:10,172.16.0.5,10.0.0.10,sysadmin,4688,Process Creation,Low,App Server,0,US,0
+2024-01-15 07:55:12,172.16.0.5,10.0.0.10,sysadmin,4688,Process Creation,Low,App Server,0,US,0
+2024-01-15 23:45:00,91.108.4.100,10.0.0.1,root,4624,Successful Login,Critical,Domain Controller,0,NL,22
+2024-01-15 23:45:30,91.108.4.100,10.0.0.1,root,4732,Group Change,Critical,Domain Controller,0,NL,22
+2024-01-15 23:46:00,91.108.4.100,10.0.0.1,root,1102,Log Cleared,Critical,Domain Controller,0,NL,22
+2024-01-15 13:20:00,10.0.0.102,10.0.0.5,mwilson,4624,Successful Login,Low,Workstation,0,US,445
+2024-01-15 13:21:00,10.0.0.102,10.0.0.5,mwilson,4663,File Access,Low,Workstation,40960,US,445
+2024-01-15 10:00:00,10.0.0.150,10.0.0.60,backup_svc,4624,Successful Login,Low,Backup Server,0,US,445
+2024-01-15 10:05:00,10.0.0.150,10.0.0.60,backup_svc,4663,File Access,Low,Backup Server,10737418240,US,445
