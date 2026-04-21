@@ -7,6 +7,7 @@ Run with:
 
 import io
 import sys
+import os
 import logging
 import warnings
 from pathlib import Path
@@ -22,7 +23,9 @@ load_dotenv()
 warnings.filterwarnings("ignore")
 
 # Add src/ to path when running directly
-sys.path.insert(0, str(Path(__file__).parent))
+_project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(_project_root))
+os.chdir(_project_root)
 from src.pipeline import run_pipeline
 
 # ---------------------------------------------------------------------------
