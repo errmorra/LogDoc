@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats as scipy_stats
 
+from .enrichment import is_private_ip
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -70,8 +72,8 @@ ATTACK_RULES = [
      lambda r: r.get("is_vip_user", False) and r.get("is_high_risk_geo", False)),
 
     ("Root/Admin Login from External IP",
-     lambda r: r.get("user", "").lower() in ("root", "admin", "administrator") and
-               not str(r.get("source_ip", "")).startswith(("10.", "192.168.", "172."))),
+     lambda r: str(r.get("user", "")).lower() in ("root", "admin", "administrator") and
+               not is_private_ip(r.get("source_ip", ""))),
 ]
 
 
