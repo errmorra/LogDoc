@@ -27,15 +27,6 @@ logger = logging.getLogger(__name__)
 
 SEVERITY_NUM = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
 
-# Cluster label map: assigned after inspection of centroid values
-CLUSTER_NAMES = {
-    0: "Routine Activity",
-    1: "Suspicious External Traffic",
-    2: "Insider / Privilege Anomaly",
-    3: "Active Threat / Exfiltration",
-    4: "Reconnaissance / Brute Force",
-}
-
 
 def cluster_alerts(
     df: pd.DataFrame,
@@ -137,23 +128,39 @@ def _name_clusters(
     scaler: StandardScaler,
 ) -> dict:
     """
-    Assign human-readable names to cluster IDs by ranking centroid risk profiles.
-    Clusters are sorted descending by their un-scaled risk_score centroid.
+    Assign human-readable names to cluster IDs based on each centroid's
+    dominant characteristics (in original feature units, i.e. the mean of
+    the cluster's members). Duplicate names get a numeric suffix.
     """
     centers_orig = scaler.inverse_transform(centers)
-    risk_col = 0   # first feature = composite_risk_score
-    order = np.argsort(centers_orig[:, risk_col])[::-1]
 
-    labels = [
-        "Active Threat / Exfiltration",
-        "Suspicious External Traffic",
-        "Insider / Privilege Anomaly",
-        "Reconnaissance / Brute Force",
-        "Routine Activity",
-    ]
-    # Pad/trim to actual n_clusters
-    labels = (labels + ["Other Cluster"] * 10)[: len(order)]
-    return {int(cluster_id): labels[rank] for rank, cluster_id in enumerate(order)}
+    names: dict[int, str] = {}
+    used: dict[str, int] = {}
+    for cluster_id, c in enumerate(centers_orig):
+        base = _describe_centroid(c)
+        used[base] = used.get(base, 0) + 1
+        names[cluster_id] = base if used[base] == 1 else f"{base} #{used[base]}"
+    return names
+
+
+def _describe_centroid(center: np.ndarray) -> str:
+    """Pick a label from centroid values (see _build_feature_matrix order)."""
+    risk, threat, asset_crit, bytes_log, off_hours, geo, vip, _sev = center
+    large_transfer = bytes_log >= np.log1p(100 * 1024 ** 2)   # >100 MB average
+
+    if risk >= 70 and large_transfer:
+        return "Active Threat / Exfiltration"
+    if risk >= 70:
+        return "Active Threat"
+    if large_transfer:
+        return "Large Data Transfer"
+    if threat >= 50 or geo >= 0.5:
+        return "Suspicious External Traffic"
+    if vip >= 0.5 or (off_hours >= 0.5 and asset_crit >= 7):
+        return "Insider / Privilege Anomaly"
+    if risk >= 40:
+        return "Elevated Activity"
+    return "Routine Activity"
 
 
 def _build_cluster_summaries(df: pd.DataFrame) -> dict:
