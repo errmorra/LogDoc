@@ -12,6 +12,7 @@ import os
 import time
 import logging
 import hashlib
+import ipaddress
 from datetime import datetime
 from typing import Optional
 
@@ -63,9 +64,12 @@ WORK_HOUR_END   = 19
 
 
 # ---------------------------------------------------------------------------
-# In-memory cache to avoid hammering free API tiers during demo runs
+# In-memory cache to avoid hammering free API tiers during demo runs.
+# Keyed by (ip, live) so toggling live lookups doesn't return stale
+# offline scores; entries expire after _CACHE_TTL_SEC.
 # ---------------------------------------------------------------------------
-_ip_cache: dict[str, dict] = {}
+_ip_cache: dict[tuple, dict] = {}
+_CACHE_TTL_SEC = 3600
 
 
 # ---------------------------------------------------------------------------
@@ -121,8 +125,10 @@ def _get_threat_score(ip: str, live: bool = False) -> int:
     if not ip or pd.isna(ip):
         return 0
 
-    if ip in _ip_cache:
-        return _ip_cache[ip]["score"]
+    cache_key = (ip, bool(live))
+    cached = _ip_cache.get(cache_key)
+    if cached and time.time() - cached["ts"] < _CACHE_TTL_SEC:
+        return cached["score"]
 
     if ip in KNOWN_MALICIOUS_IPS:
         score = 95
@@ -133,8 +139,19 @@ def _get_threat_score(ip: str, live: bool = False) -> int:
     else:
         score = _heuristic_score(ip)
 
-    _ip_cache[ip] = {"score": score, "ts": time.time()}
+    _ip_cache[cache_key] = {"score": score, "ts": time.time()}
     return score
+
+
+def is_private_ip(ip) -> bool:
+    """
+    True if *ip* is a private/internal address (RFC1918, loopback,
+    link-local, etc.). Unparseable values are treated as non-private.
+    """
+    try:
+        return ipaddress.ip_address(str(ip).strip()).is_private
+    except ValueError:
+        return False
 
 
 def _heuristic_score(ip: str) -> int:
@@ -143,9 +160,7 @@ def _heuristic_score(ip: str) -> int:
     Uses the IP string's checksum for a deterministic demo value.
     Private/RFC1918 IPs always score 0.
     """
-    private_prefixes = ("10.", "192.168.", "172.16.", "172.17.", "172.18.",
-                        "172.19.", "172.2", "127.", "::1")
-    if any(ip.startswith(p) for p in private_prefixes):
+    if is_private_ip(ip):
         return 0
 
     # Deterministic pseudo-random score based on IP hash (for demo realism)

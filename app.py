@@ -5,6 +5,7 @@ Run with:
     streamlit run app.py
 """
 
+import html
 import io
 import sys
 import os
@@ -157,28 +158,35 @@ PLOTLY_TEMPLATE = dict(
     )
 )
 
+def _esc(value) -> str:
+    """Escape log-derived values before embedding them in raw HTML."""
+    return html.escape(str(value))
+
 def _badge(label: str) -> str:
+    # Restrict to known labels so log data can't inject markup or CSS classes
+    label = label if label in RISK_COLORS else "Low"
     cls = f"badge-{label.lower()}"
     return f'<span class="score-badge {cls}">{label}</span>'
 
 def _alert_card(row: pd.Series) -> str:
-    rl = row.get("risk_label", "Low").lower()
+    label = row.get("risk_label", "Low")
+    rl = label.lower() if label in RISK_COLORS else "low"
     score = row.get("composite_risk_score", 0)
-    narrative = row.get("ai_narrative", "No narrative generated.")
-    rules = ", ".join(row.get("matched_rules", [])) or "None"
+    narrative = _esc(row.get("ai_narrative", "No narrative generated."))
+    rules = _esc(", ".join(row.get("matched_rules", [])) or "None")
     return f"""
     <div class="alert-card {rl}">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <span style="font-family:'Share Tech Mono',monospace; font-size:0.9rem;">
-          🖥 {row.get('source_ip','?')} → {row.get('asset_type','?')}
+          🖥 {_esc(row.get('source_ip','?'))} → {_esc(row.get('asset_type','?'))}
         </span>
-        {_badge(row.get('risk_label','Low'))}
+        {_badge(label)}
         <span style="font-family:'Share Tech Mono',monospace; font-size:1.1rem; color:#00d4ff;">
-          {score}/100
+          {_esc(score)}/100
         </span>
       </div>
       <div style="font-size:0.82rem; color:#94a3b8; margin-bottom:4px;">
-        {row.get('action','?')} | User: <b>{row.get('user','?')}</b> | {row.get('country','?')} |
+        {_esc(row.get('action','?'))} | User: <b>{_esc(row.get('user','?'))}</b> | {_esc(row.get('country','?'))} |
         {pd.Timestamp(row['timestamp']).strftime('%Y-%m-%d %H:%M') if pd.notna(row.get('timestamp')) else '?'}
       </div>
       <div style="font-size:0.78rem; color:#64748b; margin-bottom:6px;">
@@ -401,14 +409,14 @@ with tab3:
         st.markdown(
             f"""<div style="background:#111827;border-left:4px solid {color};
             border-radius:6px;padding:0.9rem 1.1rem;margin-bottom:0.7rem;">
-            <b style="color:{color};">{cr['cluster_name']}</b>
+            <b style="color:{color};">{_esc(cr['cluster_name'])}</b>
             &nbsp;&nbsp;<span style="color:#94a3b8;font-size:0.8rem;">
-            {cr['count']} events | avg risk {cr['avg_risk_score']}/100 | max {cr['max_risk_score']}/100
+            {_esc(cr['count'])} events | avg risk {_esc(cr['avg_risk_score'])}/100 | max {_esc(cr['max_risk_score'])}/100
             </span><br>
             <span style="font-size:0.82rem;color:#64748b;">
-            Top action: {cr['top_action']} | Asset: {cr['top_asset']} | Country: {cr['top_country']}
+            Top action: {_esc(cr['top_action'])} | Asset: {_esc(cr['top_asset'])} | Country: {_esc(cr['top_country'])}
             </span><br>
-            <span style="font-size:0.8rem;color:#94a3b8;font-style:italic;">{cr['summary']}</span>
+            <span style="font-size:0.8rem;color:#94a3b8;font-style:italic;">{_esc(cr['summary'])}</span>
             </div>""",
             unsafe_allow_html=True,
         )

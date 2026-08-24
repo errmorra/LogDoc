@@ -75,6 +75,12 @@ def load_logs(path: Union[str, Path]) -> pd.DataFrame:
         logger.warning("Unknown extension %s – attempting CSV parse.", suffix)
         df = _load_csv(path)
 
+    if df.empty:
+        raise ValueError(
+            f"No log records could be parsed from {path}. "
+            "Check that the file format matches its extension."
+        )
+
     df = _normalise(df)
     logger.info("Loaded %d log entries from %s", len(df), path)
     return df
@@ -96,15 +102,27 @@ def _load_csv(path: Path) -> pd.DataFrame:
 
 
 def _load_json(path: Path) -> pd.DataFrame:
-    records = []
-    with open(path) as fh:
-        for line in fh:
+    """Load a standard JSON document (array or object) or JSONL file."""
+    text = path.read_text()
+
+    try:
+        data = json.loads(text)
+        records = data if isinstance(data, list) else [data]
+    except json.JSONDecodeError:
+        # Fall back to line-delimited JSON (JSONL)
+        records = []
+        bad_lines = 0
+        for line in text.splitlines():
             line = line.strip()
-            if line:
-                try:
-                    records.append(json.loads(line))
-                except json.JSONDecodeError:
-                    pass
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                bad_lines += 1
+        if bad_lines:
+            logger.warning("Skipped %d unparseable JSON lines in %s", bad_lines, path)
+
     df = pd.DataFrame(records)
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
     return df
@@ -160,9 +178,10 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={k: v for k, v in aliases.items() if k in df.columns})
 
     # ── Ensure all canonical columns exist ───────────────────────────────────
+    numeric_columns = {"bytes_transferred", "port"}
     for col in CANONICAL_COLUMNS:
         if col not in df.columns:
-            df[col] = None if col in ("source_ip", "user", "country") else 0
+            df[col] = 0 if col in numeric_columns else None
 
     # ── Type coercion ────────────────────────────────────────────────────────
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
@@ -170,11 +189,13 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
     df["port"] = pd.to_numeric(df["port"], errors="coerce").fillna(0).astype(int)
     df["event_id"] = df["event_id"].astype(str).str.strip()
 
-    # Normalise severity to known labels
-    df["severity"] = df["severity"].str.strip().str.title()
+    # Normalise severity to known labels (robust to missing/non-string values)
+    df["severity"] = df["severity"].astype(str).str.strip().str.title()
     df["severity"] = df["severity"].where(
         df["severity"].isin(SEVERITY_ORDER.keys()), other="Low"
     )
+
+    df["asset_type"] = df["asset_type"].fillna("Unknown")
 
     # ── Preserve raw line ────────────────────────────────────────────────────
     if "raw_line" not in df.columns:
