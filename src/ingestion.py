@@ -160,9 +160,10 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={k: v for k, v in aliases.items() if k in df.columns})
 
     # ── Ensure all canonical columns exist ───────────────────────────────────
+    numeric_columns = {"bytes_transferred", "port"}
     for col in CANONICAL_COLUMNS:
         if col not in df.columns:
-            df[col] = None if col in ("source_ip", "user", "country") else 0
+            df[col] = 0 if col in numeric_columns else None
 
     # ── Type coercion ────────────────────────────────────────────────────────
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
@@ -170,11 +171,13 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
     df["port"] = pd.to_numeric(df["port"], errors="coerce").fillna(0).astype(int)
     df["event_id"] = df["event_id"].astype(str).str.strip()
 
-    # Normalise severity to known labels
-    df["severity"] = df["severity"].str.strip().str.title()
+    # Normalise severity to known labels (robust to missing/non-string values)
+    df["severity"] = df["severity"].astype(str).str.strip().str.title()
     df["severity"] = df["severity"].where(
         df["severity"].isin(SEVERITY_ORDER.keys()), other="Low"
     )
+
+    df["asset_type"] = df["asset_type"].fillna("Unknown")
 
     # ── Preserve raw line ────────────────────────────────────────────────────
     if "raw_line" not in df.columns:
