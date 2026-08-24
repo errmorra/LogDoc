@@ -121,11 +121,12 @@ def score(df: pd.DataFrame) -> pd.DataFrame:
         + df["component_rule_match"]   * WEIGHTS["rule_match"]
     ).round(1).clip(0, 100)
 
+    # Z-Score: how unusual is this IP's connection frequency?
+    # (May boost composite_risk_score, so the label is assigned afterwards.)
+    df = _add_ip_zscore(df)
+
     # Human-readable risk label
     df["risk_label"] = df["composite_risk_score"].apply(_score_to_label)
-
-    # Z-Score: how unusual is this IP's connection frequency?
-    df = _add_ip_zscore(df)
 
     logger.info(
         "Scoring complete. Score distribution:\n%s",
