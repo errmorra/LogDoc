@@ -64,9 +64,12 @@ WORK_HOUR_END   = 19
 
 
 # ---------------------------------------------------------------------------
-# In-memory cache to avoid hammering free API tiers during demo runs
+# In-memory cache to avoid hammering free API tiers during demo runs.
+# Keyed by (ip, live) so toggling live lookups doesn't return stale
+# offline scores; entries expire after _CACHE_TTL_SEC.
 # ---------------------------------------------------------------------------
-_ip_cache: dict[str, dict] = {}
+_ip_cache: dict[tuple, dict] = {}
+_CACHE_TTL_SEC = 3600
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +125,10 @@ def _get_threat_score(ip: str, live: bool = False) -> int:
     if not ip or pd.isna(ip):
         return 0
 
-    if ip in _ip_cache:
-        return _ip_cache[ip]["score"]
+    cache_key = (ip, bool(live))
+    cached = _ip_cache.get(cache_key)
+    if cached and time.time() - cached["ts"] < _CACHE_TTL_SEC:
+        return cached["score"]
 
     if ip in KNOWN_MALICIOUS_IPS:
         score = 95
@@ -134,7 +139,7 @@ def _get_threat_score(ip: str, live: bool = False) -> int:
     else:
         score = _heuristic_score(ip)
 
-    _ip_cache[ip] = {"score": score, "ts": time.time()}
+    _ip_cache[cache_key] = {"score": score, "ts": time.time()}
     return score
 
 
